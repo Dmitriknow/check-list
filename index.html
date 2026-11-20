@@ -2,440 +2,676 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Чек-лист наличия образцов</title>
-    <meta name="app-version" content="17">
+    <meta name="app-version" content="18">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
-        .item { margin: 20px 0; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
-        .item img { width: 80px; height: auto; display: block; margin: 5px 0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.15s ease; }
-        .item img:hover { transform: scale(1.02); }
-        .item-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .item-name { font-weight: bold; font-size: 14px; flex: 1; min-width: 150px; }
-        .item-format { font-size: 12px; background: #e0e0e0; padding: 2px 8px; border-radius: 12px; color: #333; white-space: nowrap; }
-        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
-        .btn-group button { flex: 1; padding: 8px; font-size: 14px; border: none; border-radius: 5px; cursor: pointer; }
-        .yes { background: #4CAF50; color: white; }
-        .no { background: #f44336; color: white; }
-        .selected-yes { background: #2E7D32; }
-        .selected-no { background: #B71C1C; }
-        #point_name, #point_address, #point_city, #point_coords, #point_partner, #manager { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
-        #point_address, #point_city, #point_coords, #point_partner { background: #f5f5f5; border: 1px solid #ccc; }
-        #point_coords { font-size: 14px; color: #555; }
-        .suggest-item, .manager-suggest-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
-        .suggest-item:hover, .manager-suggest-item:hover { background: #f0f0f0; }
-        .suggest-item .name { font-weight: bold; }
-        .suggest-item .addr { font-size: 12px; color: #666; }
-        .suggest-item .coords { font-size: 11px; color: #aaa; margin-top: 2px; }
-        .suggest-item .partner { font-size: 12px; color: #2196F3; margin-top: 2px; font-weight: 600; }
-        #suggest-list, #manager-suggest-list { background: white; border: 1px solid #ccc; max-height: 250px; overflow-y: auto; margin-top: 5px; display: none; }
-        .search-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .search-row input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; min-width: 150px; }
-        .search-row button { padding: 10px 20px; font-size: 16px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap; }
-        .search-row button:hover { background: #F57C00; }
-        #submitBtn { width: 100%; padding: 15px; background: #4CAF50; color: white; font-size: 18px; border: none; border-radius: 5px; margin-top: 20px; cursor: pointer; }
-        #submitBtn:hover { background: #388E3C; }
-        hr { margin: 20px 0; }
-        .section-title { font-size: 18px; font-weight: bold; margin: 20px 0 10px; padding: 5px 10px; background: #f5f5f5; border-left: 4px solid #2196F3; }
-        .stands-section { margin: 20px 0 10px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
-        .stands-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-around; }
-        .stand-item { display: flex; align-items: center; gap: 15px; padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); flex: 1 1 200px; min-width: 180px; }
-        .stand-item img { width: 70px; height: auto; border-radius: 4px; cursor: pointer; transition: transform 0.15s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .stand-item img:hover { transform: scale(1.02); }
-        .stand-info { display: flex; flex-direction: column; gap: 6px; }
-        .stand-name { font-weight: bold; font-size: 14px; }
-        .stand-control { display: flex; align-items: center; gap: 8px; }
-        .stand-control button { width: 28px; height: 28px; border: none; border-radius: 4px; background: #e0e0e0; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
-        .stand-control button:hover { background: #ccc; }
-        .stand-count { width: 50px; text-align: center; padding: 4px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; background: #fff; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; cursor: pointer; }
-        .modal-overlay.active { display: flex; }
-        .modal-overlay img { max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); cursor: default; }
-        .modal-close { position: fixed; top: 20px; right: 30px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 10000; line-height: 1; transition: transform 0.2s; }
-        .modal-close:hover { transform: scale(1.2); }
-        #comment { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; font-family: Arial, sans-serif; resize: vertical; }
-        #point-fields { display: none; }
-        #sync-status { background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0; border-left: 5px solid #ffc107; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        #sync-status .badge { background: #dc3545; color: white; border-radius: 50px; padding: 2px 10px; font-weight: bold; }
-        #sync-status .badge.online { background: #28a745; }
-        #app-version-badge { background: #6c757d; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 4px; }
-        #sync-btn, #refreshPointsBtn { background: #007bff; color: white; border: none; padding: 6px 15px; border-radius: 5px; cursor: pointer; }
-        #sync-btn:hover, #refreshPointsBtn:hover { background: #0069d9; }
-        #sync-btn:disabled { opacity: 0.6; cursor: default; }
-        #db-status { font-size: 14px; padding: 5px 10px; background: #e9ecef; border-radius: 4px; color: #495057; }
-        #db-status.loaded { background: #d4edda; color: #155724; }
-        #db-status.error { background: #f8d7da; color: #721c24; }
-        #db-status.cached { background: #cce5ff; color: #004085; }
-        #itemSearchContainer { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1001; width: 90%; max-width: 400px; margin: 0; }
-        #itemSearchContainer input { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-        #itemSuggestList { background: white; border: 1px solid #ccc; border-top: none; max-height: 200px; overflow-y: auto; margin-top: 0; border-radius: 0 0 5px 5px; display: none; }
-        .suggest-item .highlight-match { font-weight: bold; background: #ffeb3b; }
-        .highlight-item { animation: highlightPulse 1s ease 3; }
-        @keyframes highlightPulse { 0% { background: #fff9c4; } 50% { background: #ffeb3b; } 100% { background: #fff9c4; } }
-        .input-error { border: 2px solid red !important; }
-        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10001; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; width: 100%; max-width: 500px; }
-        .toast { background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 16px; opacity: 0; transform: translateY(-20px); transition: opacity 0.3s ease, transform 0.3s ease; pointer-events: auto; width: 100%; text-align: center; }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { background: #28a745; }
-        .toast.info { background: #17a2b8; }
-        .toast.warning { background: #ffc107; color: #333; }
-        .toast.error { background: #dc3545; }
-        #searchToggle { position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px; border-radius: 50%; background: #FFEAA7; color: #fff; font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; transition: transform 0.2s, background 0.2s; user-select: none; line-height: 1; }
-        #searchToggle:hover { background: #0056b3; transform: scale(1.05); }
-        #searchOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; cursor: default; }
-        .header-search-icon { display: none; }
-        .item.highlight-missing { border: 2px solid #ff5722; background: #fff3e0; box-shadow: 0 0 12px rgba(255,87,34,0.35); animation: pulseMissing 1.6s ease-in-out infinite; }
-        @keyframes pulseMissing { 0%,100% { box-shadow: 0 0 12px rgba(255,87,34,0.35); } 50% { box-shadow: 0 0 22px rgba(255,87,34,0.65); } }
-        .repeat-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; }
-        .repeat-modal-overlay.active { display: flex; }
-        .repeat-modal-box { background: #fff; padding: 24px; border-radius: 10px; max-width: 420px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.35); }
-        .repeat-modal-box h3 { margin: 0 0 10px; }
-        .repeat-modal-box p { margin: 0 0 14px; color: #555; font-size: 14px; }
-        .repeat-modal-box input { width: 100%; padding: 12px; font-size: 22px; text-align: center; box-sizing: border-box; border: 2px solid #ddd; border-radius: 6px; }
-        .repeat-modal-box .btn-row { display: flex; gap: 10px; margin-top: 16px; }
-        .repeat-modal-box .btn-row button { flex: 1; padding: 12px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer; }
-        .repeat-ok { background: #4CAF50; color: #fff; }
-        .repeat-ok:disabled { opacity: 0.5; cursor: default; }
-        .repeat-cancel { background: #999; color: #fff; }
-        #repeatVisitInfo { font-size: 13px; color: #666; margin-top: 8px; min-height: 18px; }
+/* ============ DESIGN TOKENS (VIZAVI CERAMICA) ============ */
+:root {
+  --petrol-950: #1B282D;
+  --petrol-900: #22343A;
+  --petrol-800: #2A4048;
+  --petrol-700: #2F4A54;   /* brand */
+  --petrol-600: #3B5963;
+  --petrol-500: #4C6A74;
+  --petrol-400: #6B838B;
+  --petrol-300: #8CA2A8;
+  --petrol-200: #A7B9BE;   /* logo light */
+  --petrol-150: #C3D1D5;
+  --petrol-100: #D7E0E2;
+  --petrol-50:  #EEF3F4;
 
-        /* ==== Кнопки действий ==== */
-        #monitoringBtn {
-            padding: 12px 20px;
-            background: #673AB7;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        #monitoringBtn:hover { background: #5E35B1; }
-        #monitoringBtn:disabled {
-            background: #b0a5c9;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-        #monitoringBtn:disabled:hover { background: #b0a5c9; }
+  --ink: #1E2A2E;
+  --muted: #5F7077;
 
-        #checklistBtn {
-            padding: 12px 20px;
-            background: #2196F3;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        #checklistBtn:hover { background: #1976D2; }
-        #checklistBtn:disabled {
-            background: #90b8d8;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-        #checklistBtn:disabled:hover { background: #90b8d8; }
-        #checklistBtn.active { background: #0D47A1; }
+  --green-600: #2E7D5B;
+  --green-700: #25664A;
+  --green-100: #E3F1EA;
+  --red-600: #B14E44;
+  --red-700: #94423A;
+  --red-100: #FAECEA;
+  --amber-600: #B07A10;
+  --amber-100: #F9F0D8;
 
-        #monitoring-queue-badge {
-            background: #dc3545;
-            color: #fff;
-            border-radius: 50px;
-            padding: 2px 12px;
-            font-weight: bold;
-            font-size: 13px;
-            margin-left: 6px;
-            min-width: 22px;
-            text-align: center;
-            display: inline-block;
-        }
-        #monitoring-queue-badge.online { background: #28a745; }
+  --bg: #F3F6F7;
+  --surface: #FFFFFF;
+  --line: #E2E8EA;
 
-        .monitoring-modal-overlay {
-            display: none;
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 10000;
-            justify-content: center; align-items: center;
-        }
-        .monitoring-modal-overlay.active { display: flex; }
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(27,40,45,.06);
+  --shadow-md: 0 6px 20px rgba(27,40,45,.10);
+  --shadow-lg: 0 16px 48px rgba(27,40,45,.20);
 
-        .monitoring-modal-box {
-            background: #fff;
-            padding: 24px;
-            border-radius: 10px;
-            max-width: 460px;
-            width: 92%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.35);
-        }
-        .monitoring-modal-box h3 { margin: 0 0 6px; }
-        .monitoring-modal-box .mon-hint { font-size: 13px; color: #666; margin: 0 0 10px; }
-        .monitoring-modal-box label {
-            display: block; margin-top: 12px; margin-bottom: 5px;
-            font-weight: 600; font-size: 14px;
-        }
-        .monitoring-modal-box input,
-        .monitoring-modal-box textarea {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-family: Arial, sans-serif;
-            resize: vertical;
-        }
-        .monitoring-btn-row { display: flex; gap: 10px; margin-top: 18px; }
-        .monitoring-btn-row button {
-            padding: 12px; font-size: 15px;
-            border: none; border-radius: 6px; cursor: pointer;
-        }
-        .mon-ok { background: #4CAF50; color: #fff; flex: 2; }
-        .mon-ok:hover { background: #388E3C; }
-        .mon-cancel { background: #999; color: #fff; flex: 1; }
-        .mon-cancel:hover { background: #777; }
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Didot", "Playfair Display", Georgia, "Times New Roman", serif;
+}
 
-        .monitoring-session-list { margin-top: 15px; }
-        .monitoring-session-item {
-            background: #f1f8e9;
-            border-left: 4px solid #4CAF50;
-            padding: 8px 12px;
-            border-radius: 5px;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
+/* ============ BASE ============ */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0 auto;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--bg);
+  max-width: 640px;
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+}
+img { max-width: 100%; }
+button { font-family: inherit; cursor: pointer; }
+input, textarea { font-family: inherit; }
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
-        .mon-context-info {
-            font-size: 12px;
-            color: #555;
-            background: #f5f5f5;
-            border-left: 3px solid #673AB7;
-            padding: 8px 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-        .mon-context-info b { color: #333; }
-        .mon-point-type-badge {
-            display: inline-block;
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 6px;
-            font-weight: 600;
-        }
-        .mon-point-type-badge.base { background: #cce5ff; color: #004085; }
-        .mon-point-type-badge.new  { background: #fff3cd; color: #856404; }
+/* ============ HEADER ============ */
+.app-header {
+  background: linear-gradient(135deg, var(--petrol-900) 0%, var(--petrol-700) 55%, var(--petrol-600) 100%);
+  color: #fff;
+  padding: 20px 20px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.app-brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.app-brand-mark {
+  width: 48px; height: 48px; flex: 0 0 48px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--petrol-200);
+  color: var(--petrol-200);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,.05);
+}
+.app-brand-text { display: flex; flex-direction: column; min-width: 0; }
+.app-brand-name {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  letter-spacing: 3px;
+  color: #fff;
+  line-height: 1.02;
+  display: flex;
+  flex-direction: column;
+}
+.app-brand-name .app-brand-sub {
+  font-size: 10px;
+  letter-spacing: 5px;
+  color: var(--petrol-200);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.app-brand-title { font-size: 12.5px; color: rgba(255,255,255,.72); margin-top: 5px; letter-spacing: .3px; }
+.app-version {
+  flex: 0 0 auto;
+  background: rgba(255,255,255,.12);
+  color: var(--petrol-100);
+  font-size: 11px; font-weight: 600;
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+}
 
-        .competitor-suggest-list {
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            max-height: 220px;
-            overflow-y: auto;
-            display: none;
-            margin-top: 4px;
-        }
-        .competitor-suggest-item {
-            padding: 8px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-        .competitor-suggest-item:last-child { border-bottom: none; }
-        .competitor-suggest-item:hover { background: #f0f0f0; }
-        .competitor-suggest-item .comp-name { flex: 1; }
-        .competitor-suggest-item .highlight-match { font-weight: bold; background: #ffeb3b; }
-        .competitor-prev-badge {
-            background: #e1bee7;
-            color: #4a148c;
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            white-space: nowrap;
-        }
+/* ============ STATUS STRIP ============ */
+.status-strip {
+  margin: 14px 16px 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.status-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.status-indicator { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-600); flex: 0 0 auto; }
+.status-queue { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 7px;
+  border-radius: 999px;
+  background: var(--red-600); color: #fff;
+  font-size: 11.5px; font-weight: 700;
+}
+.badge.online { background: var(--green-600); }
+.status-bottomline { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+#db-status { font-size: 12px; color: var(--petrol-800); padding: 5px 11px; border-radius: 999px; background: var(--petrol-50); font-weight: 500; }
+#db-status.loaded { background: var(--green-100); color: var(--green-700); }
+#db-status.error { background: var(--red-100); color: var(--red-700); }
+#db-status.cached { background: #E7EEF6; color: var(--petrol-700); }
+.status-actions { display: flex; gap: 8px; }
+.btn-ghost {
+  border: 1px solid var(--petrol-150);
+  background: #fff; color: var(--petrol-800);
+  padding: 7px 13px; font-size: 13px; font-weight: 600;
+  border-radius: 9px; transition: background .15s, border-color .15s;
+}
+.btn-ghost:hover { background: var(--petrol-50); border-color: var(--petrol-300); }
+.btn-ghost:disabled { opacity: .55; cursor: default; }
 
-        .mon-prev-block {
-            margin-top: 12px;
-            padding: 10px;
-            background: #faf5ff;
-            border-left: 3px solid #9c27b0;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        .mon-prev-block .mon-prev-title {
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #4a148c;
-        }
-        .mon-prev-item {
-            padding: 4px 0;
-            border-bottom: 1px dashed #e0e0e0;
-        }
-        .mon-prev-item:last-child { border-bottom: none; }
-        .mon-prev-item .mon-prev-date {
-            color: #999;
-            font-size: 11px;
-            margin-left: 6px;
-        }
+/* ============ FORM CARD ============ */
+.form-card {
+  margin: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.field-label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase;
+  color: var(--muted); margin: 15px 0 6px;
+}
+.field-label:first-child { margin-top: 0; }
+.input {
+  width: 100%; padding: 12px 14px; font-size: 16px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: #fff; color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+}
+.input:focus { outline: none; border-color: var(--petrol-700); box-shadow: 0 0 0 3px rgba(47,74,84,.12); }
+.input[readonly] { background: var(--petrol-50); color: var(--petrol-800); }
+.input::placeholder { color: #9AA8AD; }
+.input-error { border-color: var(--red-600) !important; box-shadow: 0 0 0 3px rgba(177,78,68,.14) !important; }
+
+.search-row { display: flex; gap: 10px; align-items: stretch; }
+.search-row .input { flex: 1; min-width: 0; }
+.btn-primary {
+  border: none; background: var(--petrol-700); color: #fff;
+  padding: 12px 18px; font-size: 15px; font-weight: 600;
+  border-radius: var(--radius-sm); white-space: nowrap;
+  transition: background .15s;
+}
+.btn-primary:hover { background: var(--petrol-600); }
+
+/* suggestion dropdowns */
+.suggest-list {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  max-height: 260px; overflow-y: auto;
+  margin-top: 6px;
+}
+.suggest-item { padding: 11px 14px; cursor: pointer; border-bottom: 1px solid var(--line); }
+.suggest-item:last-child { border-bottom: none; }
+.suggest-item:hover { background: var(--petrol-50); }
+.suggest-item .name { font-weight: 600; font-size: 14.5px; }
+.suggest-item .addr { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.suggest-item .coords { font-size: 11px; color: #98A5AA; margin-top: 2px; }
+.suggest-item .partner { font-size: 12px; color: var(--petrol-700); margin-top: 2px; font-weight: 600; }
+.highlight-match { font-weight: 700; background: #FFE9A8; border-radius: 3px; padding: 0 1px; }
+.manager-suggest-item { padding: 11px 14px; cursor: pointer; border-bottom: 1px solid var(--line); }
+.manager-suggest-item:hover { background: var(--petrol-50); }
+
+#point-fields { display: none; }
+
+/* ============ ACTION BUTTONS ============ */
+.actions-row { margin: 16px 0 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-monitoring {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--petrol-150); background: #fff; color: var(--petrol-800);
+  padding: 11px 16px; font-size: 14.5px; font-weight: 600; border-radius: var(--radius-sm);
+  transition: background .15s, border-color .15s;
+}
+.btn-monitoring:hover { background: var(--petrol-50); border-color: var(--petrol-300); }
+.btn-monitoring:disabled { opacity: .5; cursor: not-allowed; }
+.btn-checklist {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: none; background: var(--petrol-700); color: #fff;
+  padding: 11px 18px; font-size: 14.5px; font-weight: 600; border-radius: var(--radius-sm);
+  transition: background .15s;
+}
+.btn-checklist:hover { background: var(--petrol-600); }
+.btn-checklist:disabled { background: var(--petrol-200); color: #fff; opacity: .75; cursor: not-allowed; }
+.btn-checklist.active { background: var(--petrol-900); }
+#monitoring-queue-badge {
+  min-width: 20px; height: 20px; padding: 0 7px; border-radius: 999px;
+  background: var(--red-600); color: #fff; font-size: 11.5px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+#monitoring-queue-badge.online { background: var(--green-600); }
+
+/* ============ CHECKLIST CARD ============ */
+.checklist-card {
+  margin: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 2px; }
+.section-heading h3 { margin: 0; font-size: 17px; font-weight: 700; color: var(--ink); }
+.search-fab {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--petrol-150); background: #fff; color: var(--petrol-800);
+  border-radius: 10px; transition: background .15s, border-color .15s;
+}
+.search-fab:hover { background: var(--petrol-50); border-color: var(--petrol-300); }
+
+.checklist-progress { margin: 12px 0 2px; }
+.progress-track { height: 6px; background: var(--petrol-100); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--petrol-700), var(--petrol-500)); border-radius: 999px; transition: width .25s ease; }
+.progress-label { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 600; }
+
+.section-title {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center;
+  font-size: 12px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--petrol-800);
+  background: var(--surface);
+  padding: 9px 0 8px; margin: 16px 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* stands */
+.stands-section { margin-top: 2px; }
+.stands-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stand-item {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--petrol-50);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+.stand-item img { width: 100%; height: 92px; object-fit: cover; border-radius: 8px; box-shadow: var(--shadow-sm); cursor: pointer; }
+.stand-name { font-weight: 600; font-size: 13px; line-height: 1.3; min-height: 34px; }
+.stand-control { display: flex; align-items: center; gap: 8px; }
+.stand-control button {
+  width: 34px; height: 34px; flex: 0 0 34px;
+  border: 1px solid var(--petrol-150); background: #fff; color: var(--petrol-800);
+  border-radius: 9px; font-size: 20px; font-weight: 700; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.stand-control button:hover { background: var(--petrol-100); }
+.stand-count {
+  flex: 1; width: 100%; text-align: center;
+  padding: 7px 4px; font-size: 16px; font-weight: 700;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink);
+}
+
+/* checklist mini actions */
+.checklist-actions { display: flex; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
+.btn-mini {
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 9px;
+  transition: background .15s, border-color .15s;
+}
+.btn-mini:hover { background: var(--petrol-50); border-color: var(--petrol-300); }
+.btn-mini-danger:hover { background: var(--red-100); border-color: var(--red-600); color: var(--red-700); }
+
+/* ============ ITEMS ============ */
+#checklist { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.item {
+  display: flex; align-items: stretch; gap: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  transition: border-color .15s, background .15s;
+}
+.item-thumb {
+  width: 54px; height: 54px; flex: 0 0 54px;
+  object-fit: cover; border-radius: 8px;
+  cursor: pointer; box-shadow: var(--shadow-sm);
+  background: var(--petrol-50);
+}
+.item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.item-name { font-weight: 600; font-size: 13.5px; line-height: 1.2; word-break: break-word; }
+.item-format {
+  align-self: flex-start;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px;
+  color: var(--petrol-600);
+  background: var(--petrol-50);
+  padding: 2px 8px; border-radius: 999px;
+}
+.btn-group {
+  display: flex; flex-direction: row; gap: 0;
+  align-self: center; flex: 0 0 auto;
+  border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.btn-group button {
+  min-width: 54px; padding: 10px 12px;
+  font-size: 13px; font-weight: 700;
+  border: none; background: #fff;
+  color: var(--muted);
+  transition: background .12s, color .12s;
+}
+.btn-group .yes { color: var(--green-600); border-right: 1px solid var(--line); }
+.btn-group .no { color: var(--red-600); }
+.btn-group .yes.selected-yes { background: var(--green-600); color: #fff; }
+.btn-group .no.selected-no { background: var(--red-600); color: #fff; }
+.item:has(.selected-yes) { border-color: var(--green-600); background: linear-gradient(180deg, var(--green-100), #fff); }
+.item:has(.selected-no) { border-color: var(--red-600); background: linear-gradient(180deg, var(--red-100), #fff); }
+.item.highlight-missing { border: 2px solid var(--red-600); background: var(--red-100); animation: pulseMissing 1.6s ease-in-out infinite; }
+@keyframes pulseMissing { 0%,100% { box-shadow: 0 0 0 0 rgba(177,78,68,0); } 50% { box-shadow: 0 0 0 8px rgba(177,78,68,.12); } }
+.highlight-item { animation: highlightPulse 1s ease 3; }
+@keyframes highlightPulse { 0% { background: #FFF3BF; } 50% { background: #FFE58F; } 100% { background: #FFF3BF; } }
+
+/* ============ SUBMIT FOOTER (sticky) ============ */
+.submit-footer {
+  position: sticky; bottom: 0; z-index: 20;
+  margin-top: 18px;
+  padding: 12px 0 calc(env(safe-area-inset-bottom) + 4px);
+  background: linear-gradient(180deg, rgba(243,246,247,0) 0%, var(--bg) 34%);
+}
+#submitBtn {
+  width: 100%; padding: 15px; font-size: 16px; font-weight: 700;
+  background: var(--petrol-700); color: #fff;
+  border: none; border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  transition: background .15s, transform .05s;
+}
+#submitBtn:hover { background: var(--petrol-600); }
+#submitBtn:active { transform: translateY(1px); }
+
+/* ============ MODALS ============ */
+.modal-overlay, .repeat-modal-overlay, .monitoring-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(27,40,45,.62);
+  z-index: 9999;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.active, .repeat-modal-overlay.active, .monitoring-modal-overlay.active { display: flex; }
+.modal-overlay img { max-width: 92vw; max-height: 86vh; border-radius: 12px; box-shadow: var(--shadow-lg); }
+.modal-close {
+  position: fixed; top: 14px; right: 22px; z-index: 10000;
+  color: #fff; font-size: 40px; font-weight: 300; line-height: 1;
+  cursor: pointer; opacity: .9; transition: opacity .15s, transform .15s;
+}
+.modal-close:hover { opacity: 1; transform: scale(1.12); }
+.modal-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 22px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+.repeat-modal-box { max-width: 420px; }
+.monitoring-modal-box { max-width: 460px; max-height: 90vh; overflow-y: auto; }
+.modal-box h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: var(--ink); }
+.modal-box p, .mon-hint { margin: 0 0 14px; color: var(--muted); font-size: 13.5px; }
+.modal-box input, .modal-box textarea {
+  width: 100%; padding: 11px 13px; font-size: 16px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  box-sizing: border-box; background: #fff; color: var(--ink);
+}
+.modal-box input:focus, .modal-box textarea:focus { outline: none; border-color: var(--petrol-700); box-shadow: 0 0 0 3px rgba(47,74,84,.12); }
+.modal-box label { display: block; margin: 12px 0 5px; font-weight: 600; font-size: 13px; color: var(--ink); }
+.btn-row { display: flex; gap: 10px; margin-top: 16px; }
+.btn-row button { flex: 1; padding: 12px; font-size: 15px; font-weight: 600; border: none; border-radius: 10px; }
+.repeat-ok, .mon-ok { background: var(--petrol-700); color: #fff; }
+.repeat-ok:hover, .mon-ok:hover { background: var(--petrol-600); }
+.repeat-ok:disabled { opacity: .5; cursor: default; }
+.repeat-cancel, .mon-cancel { background: #E8ECEE; color: var(--ink); }
+.repeat-cancel:hover, .mon-cancel:hover { background: #DCE2E4; }
+.repeat-modal-box input[type=number] { font-size: 24px; text-align: center; font-weight: 700; }
+#repeatVisitInfo { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 18px; }
+
+/* monitoring module */
+.mon-context-info {
+  font-size: 12.5px; color: var(--muted);
+  background: var(--petrol-50);
+  border-left: 3px solid var(--petrol-700);
+  padding: 9px 12px; border-radius: 8px; margin: 0 0 12px;
+}
+.mon-context-info b { color: var(--ink); }
+.mon-point-type-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-left: 6px; font-weight: 600; }
+.mon-point-type-badge.base { background: var(--petrol-100); color: var(--petrol-800); }
+.mon-point-type-badge.new { background: var(--amber-100); color: var(--amber-600); }
+.mon-prev-block { margin: 0 0 12px; padding: 11px 12px; background: var(--petrol-50); border-left: 3px solid var(--petrol-500); border-radius: 8px; font-size: 13px; }
+.mon-prev-title { font-weight: 600; margin-bottom: 6px; color: var(--petrol-800); }
+.mon-prev-item { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.mon-prev-item:last-child { border-bottom: none; }
+.mon-prev-date { color: #98A5AA; font-size: 11px; margin-left: 6px; }
+.competitor-suggest-list {
+  display: none;
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  max-height: 220px; overflow-y: auto; margin-top: 4px; box-shadow: var(--shadow-md);
+}
+.competitor-suggest-item { padding: 9px 12px; cursor: pointer; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
+.competitor-suggest-item:last-child { border-bottom: none; }
+.competitor-suggest-item:hover { background: var(--petrol-50); }
+.competitor-suggest-item .comp-name { flex: 1; }
+.competitor-prev-badge { background: var(--petrol-100); color: var(--petrol-800); font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.monitoring-btn-row { display: flex; gap: 10px; margin-top: 18px; }
+.monitoring-btn-row button { padding: 12px; font-size: 15px; font-weight: 600; border: none; border-radius: 10px; }
+.monitoring-btn-row .mon-ok { flex: 2; }
+.monitoring-btn-row .mon-cancel { flex: 1; }
+.monitoring-session-list { margin-top: 16px; }
+.monitoring-session-item { background: var(--green-100); border-left: 3px solid var(--green-600); padding: 9px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 13.5px; }
+
+/* ============ SEARCH OVERLAY + FAB ============ */
+#searchOverlay { position: fixed; inset: 0; background: rgba(27,40,45,.45); z-index: 999; display: none; }
+#itemSearchContainer {
+  display: none;
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: #fff; padding: 18px; border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); z-index: 1001;
+  width: calc(100% - 40px); max-width: 400px;
+}
+#itemSearchContainer input {
+  width: 100%; padding: 12px 14px; font-size: 16px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); box-sizing: border-box;
+}
+#itemSearchContainer input:focus { outline: none; border-color: var(--petrol-700); box-shadow: 0 0 0 3px rgba(47,74,84,.12); }
+#itemSuggestList { margin-top: 0; border: 1px solid var(--line); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); max-height: 220px; overflow-y: auto; }
+
+/* ============ TOASTS ============ */
+#toast-container {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 10001; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: calc(100% - 40px); max-width: 460px; pointer-events: none;
+}
+.toast {
+  background: var(--petrol-900); color: #fff;
+  padding: 12px 18px; border-radius: 12px; box-shadow: var(--shadow-lg);
+  font-size: 14px; opacity: 0; transform: translateY(-16px);
+  transition: opacity .3s ease, transform .3s ease;
+  pointer-events: auto; width: 100%; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { background: var(--green-600); }
+.toast.info { background: var(--petrol-700); }
+.toast.warning { background: var(--amber-600); color: #fff; }
+.toast.error { background: var(--red-600); }
+
+/* ============ SMALL SCREENS ============ */
+@media (max-width: 370px) {
+  .item { gap: 10px; padding: 9px; }
+  .item-thumb { width: 46px; height: 46px; flex-basis: 46px; }
+  .btn-group button { min-width: 46px; padding: 9px 10px; font-size: 12.5px; }
+  .stands-container { grid-template-columns: 1fr; }
+}
+
     </style>
 </head>
 <body>
-
-<h2>Отчёт по торговой точке</h2>
-
-<div id="sync-status">
-    <span id="sync-message">📡 Статус: <span id="status-text">Ожидание</span> <span id="app-version-badge">v?</span></span>
-    <span>📦 Очередь: <span id="queue-count" class="badge">0</span></span>
-    <span id="db-status">🗄️ База: загрузка...</span>
-    <div>
-        <button id="refreshPointsBtn">🔄 Обновить базу</button>
-        <button id="sync-btn">📤 Синхронизировать</button>
+<header class="app-header">
+  <div class="app-brand">
+    <span class="app-brand-mark">V</span>
+    <div class="app-brand-text">
+      <span class="app-brand-name">VIZAVI<span class="app-brand-sub">CERAMICA</span></span>
+      <span class="app-brand-title">Отчёт по торговой точке</span>
     </div>
+  </div>
+  <span class="app-version" id="app-version-badge">v?</span>
+</header>
+
+<div class="status-strip" id="sync-status">
+  <div class="status-topline">
+    <span class="status-indicator"><span class="status-dot"></span><span id="status-text">Ожидание</span></span>
+    <span class="status-queue">Очередь <span id="queue-count" class="badge">0</span></span>
+  </div>
+  <div class="status-bottomline">
+    <span id="db-status">База: загрузка…</span>
+    <div class="status-actions">
+      <button id="refreshPointsBtn" class="btn-ghost">Обновить базу</button>
+      <button id="sync-btn" class="btn-ghost">Синхронизировать</button>
+    </div>
+  </div>
 </div>
 
-<label for="search_input">Введите название, адрес или город:</label>
-<div class="search-row">
-    <input id="search_input" type="text" placeholder="Начните вводить...">
-    <button id="newPointBtn">➕ Новая точка</button>
-</div>
-<div id="suggest-list" class="suggest-list"></div>
+<div class="form-card">
+  <label class="field-label" for="search_input">Поиск точки</label>
+  <div class="search-row">
+    <input id="search_input" class="input" type="text" placeholder="Название, адрес или город…">
+    <button id="newPointBtn" class="btn-primary">Новая точка</button>
+  </div>
+  <div id="suggest-list" class="suggest-list"></div>
 
-<div id="point-fields">
+  <div id="point-fields">
     <input type="hidden" id="point_type" value="База">
-    <label for="point_name">Название точки:</label>
-    <input id="point_name" type="text" placeholder="Введите название..." style="width:100%; padding:10px; font-size:16px; box-sizing:border-box; background:#f5f5f5;" readonly>
+    <label class="field-label" for="point_name">Название точки</label>
+    <input id="point_name" class="input" type="text" placeholder="Введите название…" readonly>
 
-    <div id="partner-block" style="display:none; margin-top:10px;">
-        <label for="point_partner">Партнер:</label>
-        <input id="point_partner" type="text" placeholder="Введите партнера..." style="width:100%; padding:10px; font-size:16px; box-sizing:border-box; background:#f5f5f5; border:1px solid #ccc;" readonly>
+    <div id="partner-block" style="display:none;">
+      <label class="field-label" for="point_partner">Партнёр</label>
+      <input id="point_partner" class="input" type="text" placeholder="Введите партнёра…" readonly>
     </div>
 
-    <label for="point_address">Адрес:</label>
-    <input id="point_address" type="text" placeholder="Введите адрес..." style="width:100%; padding:10px; font-size:16px; box-sizing:border-box; background:#f5f5f5; border:1px solid #ccc;" readonly>
-    <label for="point_city">Город:</label>
-    <input id="point_city" type="text" placeholder="Введите город..." style="width:100%; padding:10px; font-size:16px; box-sizing:border-box; background:#f5f5f5; border:1px solid #ccc;" readonly>
-    <label for="point_coords">Координаты (широта, долгота):</label>
-    <input id="point_coords" type="text" placeholder="Например: 53.195, 50.100" style="width:100%; padding:10px; font-size:16px; box-sizing:border-box; background:#f5f5f5; border:1px solid #ccc;" readonly>
-</div>
+    <label class="field-label" for="point_address">Адрес</label>
+    <input id="point_address" class="input" type="text" placeholder="Введите адрес…" readonly>
+    <label class="field-label" for="point_city">Город</label>
+    <input id="point_city" class="input" type="text" placeholder="Введите город…" readonly>
+    <label class="field-label" for="point_coords">Координаты</label>
+    <input id="point_coords" class="input" type="text" placeholder="Например: 53.195, 50.100" readonly>
+  </div>
 
-<label for="manager">Менеджер:</label>
-<input id="manager" type="text" placeholder="Введите фамилию..." style="width:100%; padding:10px; font-size:16px; box-sizing:border-box; border:1px solid #ccc; border-radius:5px;">
-<div id="manager-suggest-list" class="suggest-list"></div>
+  <label class="field-label" for="manager">Менеджер</label>
+  <input id="manager" class="input" type="text" placeholder="Введите фамилию…">
+  <div id="manager-suggest-list" class="suggest-list"></div>
 
-<div style="display: flex; align-items: center; gap: 8px; margin: 15px 0 10px; flex-wrap: wrap;">
-    <button id="monitoringBtn" disabled title="Сначала выберите точку (название + адрес) и укажите менеджера">📊 Мониторинг конкурентов</button>
-    <span id="monitoring-queue-badge">0</span>
-    <button id="checklistBtn" disabled title="Сначала выберите точку (название + адрес) и укажите менеджера">📋 Чек лист Vizavi</button>
+  <div class="actions-row">
+    <button id="monitoringBtn" class="btn-monitoring" disabled title="Сначала выберите точку и укажите менеджера">Мониторинг конкурентов <span id="monitoring-queue-badge">0</span></button>
+    <button id="checklistBtn" class="btn-checklist" disabled title="Сначала выберите точку и укажите менеджера">Чек-лист Vizavi</button>
+  </div>
 </div>
 
 <div id="checklistSection" style="display:none;">
-    <hr>
-    <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
-        <h3 style="margin: 0;">Наличие образцов</h3>
+  <div class="checklist-card">
+    <div class="section-heading">
+      <h3>Наличие образцов</h3>
+      <span id="searchToggle" class="search-fab" style="display:none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+    </div>
+
+    <div class="checklist-progress">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <span class="progress-label" id="progress-label">—</span>
     </div>
 
     <div id="itemSearchContainer">
-        <input type="text" id="itemSearchInput" placeholder="Введите артикул...">
-        <div id="itemSuggestList" class="suggest-list"></div>
+      <input type="text" id="itemSearchInput" placeholder="Поиск по артикулу…">
+      <div id="itemSuggestList" class="suggest-list"></div>
     </div>
     <div id="searchOverlay"></div>
 
     <div class="stands-section">
-        <div class="section-title">Стенды</div>
-        <div class="stands-container">
-            <div class="stand-item">
-                <img src="https://static.tildacdn.com/tild3535-3466-4234-b739-343738623734/5278750716912667799.png" alt="Стенд гребенка" onclick="openImage(this.src)">
-                <div class="stand-info">
-                    <span class="stand-name">Стенд «Гребенка»</span>
-                    <div class="stand-control">
-                        <button class="stand-minus" data-target="stand1">−</button>
-                        <input type="number" id="stand1" class="stand-count" value="0" min="0" step="1">
-                        <button class="stand-plus" data-target="stand1">+</button>
-                    </div>
-                </div>
+      <div class="section-title">Стенды</div>
+      <div class="stands-container">
+        <div class="stand-item">
+          <img src="https://static.tildacdn.com/tild3535-3466-4234-b739-343738623734/5278750716912667799.png" alt="Стенд гребенка" onclick="openImage(this.src)">
+          <div class="stand-info">
+            <span class="stand-name">Стенд «Гребенка»</span>
+            <div class="stand-control">
+              <button class="stand-minus" data-target="stand1">−</button>
+              <input type="number" id="stand1" class="stand-count" value="0" min="0" step="1">
+              <button class="stand-plus" data-target="stand1">+</button>
             </div>
-            <div class="stand-item">
-                <img src="https://static.tildacdn.com/tild6631-3564-4636-b539-363163313831/___1.jpg" alt="Стенд выкатной" onclick="openImage(this.src)">
-                <div class="stand-info">
-                    <span class="stand-name">Стенд «Выкатной»</span>
-                    <div class="stand-control">
-                        <button class="stand-minus" data-target="stand2">−</button>
-                        <input type="number" id="stand2" class="stand-count" value="0" min="0" step="1">
-                        <button class="stand-plus" data-target="stand2">+</button>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
+        <div class="stand-item">
+          <img src="https://static.tildacdn.com/tild6631-3564-4636-b539-363163313831/___1.jpg" alt="Стенд выкатной" onclick="openImage(this.src)">
+          <div class="stand-info">
+            <span class="stand-name">Стенд «Выкатной»</span>
+            <div class="stand-control">
+              <button class="stand-minus" data-target="stand2">−</button>
+              <input type="number" id="stand2" class="stand-count" value="0" min="0" step="1">
+              <button class="stand-plus" data-target="stand2">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-        <button id="selectNoAllBtn" style="padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; background: #f44336; color: white;">❌ Нет выставки</button>
-        <button id="repeatVisitBtn" style="padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; background: #2196F3; color: white;">🔁 Повторный визит</button>
+    <div class="checklist-actions">
+      <button id="selectNoAllBtn" class="btn-mini btn-mini-danger">Нет выставки</button>
+      <button id="repeatVisitBtn" class="btn-mini">Повторный визит</button>
     </div>
 
     <div id="checklist"></div>
 
-    <label for="comment">Задачи на следующий визит:</label>
-    <textarea id="comment" rows="3" placeholder="Введите задачи на следующий визит..."></textarea>
+    <label class="field-label" for="comment">Задачи на следующий визит</label>
+    <textarea id="comment" class="input" rows="3" placeholder="Введите задачи…"></textarea>
 
-    <button id="submitBtn">📤 Добавить в очередь и отправить (при наличии сети)</button>
+    <div class="submit-footer">
+      <button id="submitBtn">Добавить в очередь и отправить</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="imageModal">
-    <span class="modal-close" id="modalClose">&times;</span>
-    <img id="modalImage" src="" alt="Увеличенное изображение">
+  <span class="modal-close" id="modalClose">&times;</span>
+  <img id="modalImage" src="" alt="Увеличенное изображение">
 </div>
 
 <div class="repeat-modal-overlay" id="repeatModal">
-    <div class="repeat-modal-box">
-        <h3>🔁 Повторный визит</h3>
-        <p>Укажите количество образцов, которые сейчас на выставке:</p>
-        <input type="number" id="repeatCountInput" min="0" step="1" placeholder="0">
-        <div id="repeatVisitInfo"></div>
-        <div class="btn-row">
-            <button class="repeat-ok" id="repeatOkBtn">Проверить и заполнить</button>
-            <button class="repeat-cancel" id="repeatCancelBtn">Отмена</button>
-        </div>
+  <div class="modal-box repeat-modal-box">
+    <h3>Повторный визит</h3>
+    <p>Укажите количество образцов, которые сейчас на выставке:</p>
+    <input type="number" id="repeatCountInput" min="0" step="1" placeholder="0">
+    <div id="repeatVisitInfo"></div>
+    <div class="btn-row">
+      <button class="repeat-ok" id="repeatOkBtn">Проверить и заполнить</button>
+      <button class="repeat-cancel" id="repeatCancelBtn">Отмена</button>
     </div>
+  </div>
 </div>
 
 <div class="monitoring-modal-overlay" id="monitoringModal">
-    <div class="monitoring-modal-box">
-        <h3>📊 Мониторинг конкурентов</h3>
-        <p class="mon-hint">Заполните данные о конкурентах в текущей точке. Записи уходят в отдельную таблицу и не влияют на чек-лист.</p>
+  <div class="modal-box monitoring-modal-box">
+    <h3>Мониторинг конкурентов</h3>
+    <p class="mon-hint">Заполните данные о конкурентах в текущей точке. Записи уходят в отдельную таблицу и не влияют на чек-лист.</p>
 
-        <div class="mon-context-info" id="monContextInfo"></div>
+    <div class="mon-context-info" id="monContextInfo"></div>
+    <div class="mon-prev-block" id="monPreviousVisits" style="display:none;"></div>
 
-        <div class="mon-prev-block" id="monPreviousVisits" style="display:none;"></div>
+    <label for="competitorName">Конкурент</label>
+    <input type="text" id="competitorName" placeholder="Начните вводить название…" autocomplete="off">
+    <div id="competitorSuggestList" class="competitor-suggest-list"></div>
 
-        <label for="competitorName">Конкурент:</label>
-        <input type="text" id="competitorName" placeholder="Начните вводить название..." autocomplete="off">
-        <div id="competitorSuggestList" class="competitor-suggest-list"></div>
+    <label for="competitorStands">Кол-во стендов</label>
+    <input type="number" id="competitorStands" min="0" step="1" placeholder="0">
 
-        <label for="competitorStands">Кол-во стендов:</label>
-        <input type="number" id="competitorStands" min="0" step="1" placeholder="0">
+    <label for="competitorComment">Комментарий (необязательно)</label>
+    <textarea id="competitorComment" rows="2" placeholder="…"></textarea>
 
-        <label for="competitorComment">Комментарий (необязательно):</label>
-        <textarea id="competitorComment" rows="2" placeholder="..."></textarea>
-
-        <div class="monitoring-btn-row">
-            <button id="monitoringAddBtn" class="mon-ok">Отправить данные по конкуренту</button>
-            <button id="monitoringCancelBtn" class="mon-cancel">Закрыть</button>
-        </div>
-
-        <div class="monitoring-session-list" id="monitoringSessionList"></div>
+    <div class="monitoring-btn-row">
+      <button id="monitoringAddBtn" class="mon-ok">Отправить данные по конкуренту</button>
+      <button id="monitoringCancelBtn" class="mon-cancel">Закрыть</button>
     </div>
+
+    <div class="monitoring-session-list" id="monitoringSessionList"></div>
+  </div>
 </div>
 
 <div id="toast-container"></div>
-
-<span id="searchToggle" style="display:none;">🔍</span>
 
 <script>
     // =====================================================
@@ -1097,14 +1333,14 @@
                     const partner = this.dataset.partner || '';
                     pointPartnerInput.value = partner;
                     pointPartnerInput.readOnly = true;
-                    pointPartnerInput.style.background = '#f5f5f5';
+                    pointPartnerInput.style.background = '';
                     partnerBlock.style.display = partner.trim() ? 'block' : 'none';
 
                     pointNameInput.readOnly = true; pointAddressInput.readOnly = true;
                     pointCityInput.readOnly = true; pointCoordsInput.readOnly = true;
-                    pointAddressInput.style.background = '#f5f5f5';
-                    pointCityInput.style.background = '#f5f5f5';
-                    pointCoordsInput.style.background = '#f5f5f5';
+                    pointAddressInput.style.background = '';
+                    pointCityInput.style.background = '';
+                    pointCoordsInput.style.background = '';
                     suggestList.style.display = 'none';
                     searchInput.value = this.dataset.name;
                     pointFields.style.display = 'block';
@@ -1132,14 +1368,14 @@
                 }
                 html += `
                     <div class="item">
-                        <div class="item-header">
+                        <img class="item-thumb" src="${item.image}" alt="${item.name}" loading="lazy" onclick="openImage('${item.image}')" onerror="this.style.display='none'">
+                        <div class="item-main">
                             <span class="item-name">${item.name}</span>
                             <span class="item-format">${item.format}</span>
                         </div>
-                        <img src="${item.image}" alt="${item.name}" onclick="openImage('${item.image}')" onerror="this.style.display='none'">
                         <div class="btn-group">
-                            <button class="yes" data-value="yes">✅ Есть</button>
-                            <button class="no" data-value="no">❌ Нет</button>
+                            <button class="yes" data-value="yes">Есть</button>
+                            <button class="no" data-value="no">Нет</button>
                         </div>
                     </div>
                 `;
@@ -1242,15 +1478,15 @@
             pointCityInput.value = ''; pointCoordsInput.value = '';
             pointPartnerInput.value = '';
             pointPartnerInput.readOnly = true;
-            pointPartnerInput.style.background = '#f5f5f5';
+            pointPartnerInput.style.background = '';
             partnerBlock.style.display = 'none';
             setPointType('База');
 
             pointNameInput.readOnly = true; pointAddressInput.readOnly = true;
             pointCityInput.readOnly = true; pointCoordsInput.readOnly = true;
-            pointAddressInput.style.background = '#f5f5f5';
-            pointCityInput.style.background = '#f5f5f5';
-            pointCoordsInput.style.background = '#f5f5f5';
+            pointAddressInput.style.background = '';
+            pointCityInput.style.background = '';
+            pointCoordsInput.style.background = '';
             searchInput.value = '';
             suggestList.style.display = 'none';
             isManual = false;
@@ -2092,6 +2328,22 @@
             if (URL_READY) window.refreshMonitoringCache();
             syncMonReports();
         }
+    })();
+</script>
+<script>
+    (function () {
+        var checklist = document.getElementById('checklist');
+        var fill = document.getElementById('progress-fill');
+        var label = document.getElementById('progress-label');
+        if (!checklist || !fill || !label) return;
+        function update() {
+            var total = checklist.querySelectorAll('.item').length;
+            var done = checklist.querySelectorAll('.btn-group .selected-yes, .btn-group .selected-no').length;
+            fill.style.width = total ? Math.round(done / total * 100) + '%' : '0%';
+            label.textContent = total ? ('Отмечено ' + done + ' из ' + total) : '';
+        }
+        new MutationObserver(update).observe(checklist, { subtree: true, attributes: true, attributeFilter: ['class'] });
+        update();
     })();
 </script>
 </body>
