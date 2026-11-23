@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Чек-лист наличия образцов</title>
-    <meta name="app-version" content="18">
+    <meta name="app-version" content="19">
     <style>
 /* ============ DESIGN TOKENS (VIZAVI CERAMICA) ============ */
 :root {
@@ -498,7 +498,26 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   .stands-container { grid-template-columns: 1fr; }
 }
 
-    </style>
+    
+/* ============ RECEIPTS JOURNAL ============ */
+.receipts-modal-overlay { position: fixed; inset: 0; background: rgba(27,40,45,.62); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+.receipts-modal-overlay.active { display: flex; }
+.receipts-box { background: var(--surface); border-radius: var(--radius); padding: 22px; width: 100%; max-width: 440px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+.receipts-box h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+.receipts-hint { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; }
+.receipts-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.receipts-empty { color: var(--muted); font-size: 13.5px; padding: 8px 0; }
+.receipt-item { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; }
+.receipt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.receipt-status { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.receipt-status.st-sent { background: var(--green-100); color: var(--green-700); }
+.receipt-status.st-queued { background: var(--amber-100); color: var(--amber-600); }
+.receipt-status.st-error { background: var(--red-100); color: var(--red-700); }
+.receipt-time { font-size: 11.5px; color: #98A5AA; }
+.receipt-point { font-weight: 600; color: var(--ink); }
+.receipt-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; word-break: break-all; }
+.receipts-close { margin-top: 14px; align-self: flex-end; }
+</style>
 </head>
 <body>
 <header class="app-header">
@@ -522,6 +541,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     <div class="status-actions">
       <button id="refreshPointsBtn" class="btn-ghost">Обновить базу</button>
       <button id="sync-btn" class="btn-ghost">Синхронизировать</button>
+      <button id="receiptsBtn" class="btn-ghost">Отправленные (0)</button>
     </div>
   </div>
 </div>
@@ -671,13 +691,22 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   </div>
 </div>
 
+<div class="receipts-modal-overlay" id="receiptsModal">
+  <div class="receipts-box">
+    <h3>Отправленные отчёты</h3>
+    <p class="receipts-hint">История отправок на этом устройстве. «Доставлен» — сервер подтвердил получение.</p>
+    <div class="receipts-list" id="receiptsList"></div>
+    <button class="btn-ghost receipts-close" id="receiptsCloseBtn">Закрыть</button>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
     // =====================================================
     // 1. НАСТРОЙКИ
     // =====================================================
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyf0narXud7FfkPvgZ-fG-5aNaQN-Lea7KnKDqlYJFAI8wnICaa3tFX29Zzx7LQyOYo/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwwpnycVeC25WuBv4pE298awN1TkrabSiCXjASucy94R1whaWRGIxLlrl1WogjhHKGe/exec';
     const CSV_URL = 'https://raw.githubusercontent.com/Dmitriknow/Points/refs/heads/main/all_cities_test.csv';
     const STORAGE_KEY_POINTS = 'offline_points_cache';
     const STORAGE_KEY_QUEUE = 'offline_reports_queue';
@@ -1044,28 +1073,30 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
     async function addReportToQueue(reportData) {
         const queue = await getQueue();
-        queue.push({
+        const report = {
             ...reportData,
             timestamp: new Date().toISOString(),
             id: Date.now() + '_' + Math.random().toString(36).substr(2, 6)
-        });
+        };
+        queue.push(report);
         await saveQueue(queue);
         await updateQueueUI();
-        return queue.length;
+        return report;
     }
 
     async function sendReportToServer(report) {
         try {
-            await fetch(SCRIPT_URL, {
+            const resp = await fetchWithTimeout(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(report)
-            });
-            return true;
+            }, 20000);
+            const json = await resp.json().catch(() => null);
+            if (json && json.result === 'success') return { ok: true, duplicate: !!json.duplicate };
+            return { ok: false, error: (json && json.error) || ('HTTP ' + resp.status) };
         } catch (error) {
-            console.error('Ошибка отправки:', error);
-            return false;
+            return { ok: false, error: error.message || 'Сетевая ошибка' };
         }
     }
 
@@ -1078,19 +1109,17 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
         let successCount = 0;
         const failedIds = [];
         for (const report of queue) {
-            const ok = await sendReportToServer(report);
-            if (ok) successCount++;
-            else failedIds.push(report.id);
+            const res = await sendReportToServer(report);
+            if (res.ok) { successCount++; addReceipt(report, 'sent'); }
+            else { failedIds.push(report.id); addReceipt(report, 'error', res.error); }
         }
-        if (successCount > 0) {
-            let newQueue = await getQueue();
-            newQueue = newQueue.filter(r => failedIds.includes(r.id));
-            await saveQueue(newQueue);
-        }
+        const newQueue = queue.filter(r => failedIds.includes(r.id));
+        await saveQueue(newQueue);
         await updateQueueUI();
+        renderReceipts();
         document.getElementById('sync-btn').disabled = false;
-        if (failedIds.length === 0) updateStatus(`✅ Все ${successCount} отчётов отправлены!`);
-        else updateStatus(`⚠️ Отправлено ${successCount}, ${failedIds.length} не удалось`);
+        if (failedIds.length === 0) updateStatus(`Доставлено ${successCount} отчётов — подтверждено сервером`);
+        else updateStatus(`Подтверждено ${successCount}, не доставлено ${failedIds.length} (в очереди)`);
     }
 
     async function updateQueueUI() {
@@ -1123,6 +1152,75 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     }
 
     // =====================================================
+    // 6a. КВИТАНЦИИ ОТПРАВКИ (журнал на устройстве)
+    // =====================================================
+    const STORAGE_KEY_RECEIPTS = 'offline_receipts';
+    function getReceipts() {
+        try { const d = localStorage.getItem(STORAGE_KEY_RECEIPTS); return d ? JSON.parse(d) : []; } catch(e){ return []; }
+    }
+    function addReceipt(report, status, error) {
+        const receipts = getReceipts();
+        const id = report.id || '';
+        const entry = {
+            id: id,
+            time: report.timestamp || new Date().toISOString(),
+            point: report.pointName || '',
+            manager: report.manager || '',
+            status: status,
+            error: error || ''
+        };
+        const idx = id ? receipts.findIndex(r => r.id === id) : -1;
+        if (idx >= 0) receipts[idx] = entry;
+        else receipts.unshift(entry);
+        while (receipts.length > 50) receipts.pop();
+        try { localStorage.setItem(STORAGE_KEY_RECEIPTS, JSON.stringify(receipts)); } catch(e){}
+        updateReceiptsBadge();
+    }
+    function renderReceipts() {
+        const list = document.getElementById('receiptsList');
+        if (!list) return;
+        const receipts = getReceipts();
+        if (receipts.length === 0) { list.innerHTML = '<div class="receipts-empty">Пока нет отправленных отчётов.</div>'; return; }
+        const statusMap = {
+            sent:   { label: 'Доставлен', cls: 'st-sent' },
+            queued: { label: 'В очереди', cls: 'st-queued' },
+            error:  { label: 'Ошибка', cls: 'st-error' }
+        };
+        list.innerHTML = receipts.map(r => {
+            const s = statusMap[r.status] || statusMap.queued;
+            const d = new Date(r.time);
+            const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleString('ru-RU');
+            return `<div class="receipt-item">
+                <div class="receipt-head">
+                    <span class="receipt-status ${s.cls}">${s.label}</span>
+                    <span class="receipt-time">${timeStr}</span>
+                </div>
+                <div class="receipt-point">${escapeHtml(r.point || '—')}</div>
+                <div class="receipt-meta">${escapeHtml(r.manager || '')}${r.id ? ' · № ' + escapeHtml(r.id) : ''}${r.error ? ' · ' + escapeHtml(r.error) : ''}</div>
+            </div>`;
+        }).join('');
+    }
+    function updateReceiptsBadge() {
+        const b = document.getElementById('receiptsBtn');
+        if (b) b.textContent = 'Отправленные (' + getReceipts().length + ')';
+    }
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    (function() {
+        const receiptsBtn = document.getElementById('receiptsBtn');
+        const receiptsModal = document.getElementById('receiptsModal');
+        const receiptsCloseBtn = document.getElementById('receiptsCloseBtn');
+        if (receiptsBtn && receiptsModal) {
+            receiptsBtn.addEventListener('click', function() { renderReceipts(); receiptsModal.classList.add('active'); });
+            receiptsModal.addEventListener('click', function(e) { if (e.target === this) receiptsModal.classList.remove('active'); });
+            if (receiptsCloseBtn) receiptsCloseBtn.addEventListener('click', function() { receiptsModal.classList.remove('active'); });
+            document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && receiptsModal.classList.contains('active')) receiptsModal.classList.remove('active'); });
+        }
+        updateReceiptsBadge();
+    })();
+
+    // =====================================================
     // 6b. ОБНОВЛЕНИЕ САМОГО ПРИЛОЖЕНИЯ (index.html)
     // =====================================================
     function getLocalAppVersion() {
@@ -1149,6 +1247,10 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
         if (s1 > 0 || s2 > 0) return true;
         return false;
     }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ''; }
+    });
 
     async function refreshAppIfNewer() {
         try {
@@ -1742,9 +1844,11 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
                 items: itemsPayload,
                 type: isManual ? 'Новая' : 'База'
             };
-            await addReportToQueue(report);
+            const queued = await addReportToQueue(report);
+            addReceipt(queued, 'queued');
+            renderReceipts();
 
-            showToast('Отчёт принят', 'success');
+            showToast('Отчёт добавлен в очередь', 'success');
             resetForm();
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
