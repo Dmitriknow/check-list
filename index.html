@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Чек-лист наличия образцов</title>
-    <meta name="app-version" content="19">
+    <meta name="app-version" content="20">
     <style>
 /* ============ DESIGN TOKENS (VIZAVI CERAMICA) ============ */
 :root {
@@ -146,7 +146,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 #db-status.loaded { background: var(--green-100); color: var(--green-700); }
 #db-status.error { background: var(--red-100); color: var(--red-700); }
 #db-status.cached { background: #E7EEF6; color: var(--petrol-700); }
-.status-actions { display: flex; gap: 8px; }
+.status-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-ghost {
   border: 1px solid var(--petrol-150);
   background: #fff; color: var(--petrol-800);
@@ -234,12 +234,6 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .btn-checklist:hover { background: var(--petrol-600); }
 .btn-checklist:disabled { background: var(--petrol-200); color: #fff; opacity: .75; cursor: not-allowed; }
 .btn-checklist.active { background: var(--petrol-900); }
-#monitoring-queue-badge {
-  min-width: 20px; height: 20px; padding: 0 7px; border-radius: 999px;
-  background: var(--red-600); color: #fff; font-size: 11.5px; font-weight: 700;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-#monitoring-queue-badge.online { background: var(--green-600); }
 
 /* ============ CHECKLIST CARD ============ */
 .checklist-card {
@@ -508,12 +502,15 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .receipts-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .receipts-empty { color: var(--muted); font-size: 13.5px; padding: 8px 0; }
 .receipt-item { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; }
-.receipt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.receipt-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .receipt-status { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
 .receipt-status.st-sent { background: var(--green-100); color: var(--green-700); }
 .receipt-status.st-queued { background: var(--amber-100); color: var(--amber-600); }
 .receipt-status.st-error { background: var(--red-100); color: var(--red-700); }
-.receipt-time { font-size: 11.5px; color: #98A5AA; }
+.receipt-kind { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.receipt-kind.k-chk { background: var(--petrol-100); color: var(--petrol-800); }
+.receipt-kind.k-mon { background: #EDE7F6; color: #5E35B1; }
+.receipt-time { font-size: 11.5px; color: #98A5AA; margin-left: auto; }
 .receipt-point { font-weight: 600; color: var(--ink); }
 .receipt-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; word-break: break-all; }
 .receipts-close { margin-top: 14px; align-self: flex-end; }
@@ -538,11 +535,11 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   </div>
   <div class="status-bottomline">
     <span id="db-status">База: загрузка…</span>
-    <div class="status-actions">
-      <button id="refreshPointsBtn" class="btn-ghost">Обновить базу</button>
-      <button id="sync-btn" class="btn-ghost">Синхронизировать</button>
-      <button id="receiptsBtn" class="btn-ghost">Отправленные (0)</button>
-    </div>
+  </div>
+  <div class="status-actions">
+    <button id="refreshPointsBtn" class="btn-ghost">Обновить базу</button>
+    <button id="sync-btn" class="btn-ghost">Синхронизировать</button>
+    <button id="receiptsBtn" class="btn-ghost">Отправленные (0)</button>
   </div>
 </div>
 
@@ -577,7 +574,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   <div id="manager-suggest-list" class="suggest-list"></div>
 
   <div class="actions-row">
-    <button id="monitoringBtn" class="btn-monitoring" disabled title="Сначала выберите точку и укажите менеджера">Мониторинг конкурентов <span id="monitoring-queue-badge">0</span></button>
+    <button id="monitoringBtn" class="btn-monitoring" disabled title="Сначала выберите точку и укажите менеджера">Мониторинг конкурентов</button>
     <button id="checklistBtn" class="btn-checklist" disabled title="Сначала выберите точку и укажите менеджера">Чек-лист Vizavi</button>
   </div>
 </div>
@@ -1122,13 +1119,21 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
         else updateStatus(`Подтверждено ${successCount}, не доставлено ${failedIds.length} (в очереди)`);
     }
 
-    async function updateQueueUI() {
-        const queue = await getQueue();
-        const count = queue.length;
-        document.getElementById('queue-count').textContent = count;
+        async function updateQueueUI() {
+        await updateTotalQueueBadge();
+    }
+
+    async function updateTotalQueueBadge() {
+        const checklist = (await getQueue()).length;
+        const monitoring = (typeof window.getMonQueueCount === 'function') ? window.getMonQueueCount() : 0;
+        const total = checklist + monitoring;
         const badge = document.getElementById('queue-count');
-        badge.className = 'badge' + (count === 0 ? ' online' : '');
-        document.getElementById('status-text').textContent = count === 0 ? 'Всё синхронизировано' : `Ожидает отправки (${count})`;
+        if (badge) {
+            badge.textContent = total;
+            badge.className = 'badge' + (total === 0 ? ' online' : '');
+        }
+        const st = document.getElementById('status-text');
+        if (st) st.textContent = total === 0 ? 'Всё синхронизировано' : `Ожидает отправки (${total})`;
     }
 
     function updateStatus(msg) {
@@ -1158,14 +1163,18 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     function getReceipts() {
         try { const d = localStorage.getItem(STORAGE_KEY_RECEIPTS); return d ? JSON.parse(d) : []; } catch(e){ return []; }
     }
-    function addReceipt(report, status, error) {
+        function addReceipt(report, status, error, kind) {
         const receipts = getReceipts();
         const id = report.id || '';
+        const k = kind || (report.type === 'monitoring' ? 'monitoring' : 'checklist');
         const entry = {
             id: id,
             time: report.timestamp || new Date().toISOString(),
+            kind: k,
             point: report.pointName || '',
             manager: report.manager || '',
+            competitor: report.competitor || '',
+            standsCount: report.standsCount,
             status: status,
             error: error || ''
         };
@@ -1176,7 +1185,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
         try { localStorage.setItem(STORAGE_KEY_RECEIPTS, JSON.stringify(receipts)); } catch(e){}
         updateReceiptsBadge();
     }
-    function renderReceipts() {
+        function renderReceipts() {
         const list = document.getElementById('receiptsList');
         if (!list) return;
         const receipts = getReceipts();
@@ -1190,12 +1199,17 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
             const s = statusMap[r.status] || statusMap.queued;
             const d = new Date(r.time);
             const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleString('ru-RU');
+            const isMon = r.kind === 'monitoring';
+            const detail = isMon
+                ? ('Конкурент: ' + escapeHtml(r.competitor || '—') + (r.standsCount != null ? ' · стендов ' + r.standsCount : ''))
+                : escapeHtml(r.point || '—');
             return `<div class="receipt-item">
                 <div class="receipt-head">
+                    <span class="receipt-kind ${isMon ? 'k-mon' : 'k-chk'}">${isMon ? 'Мониторинг' : 'Чек-лист'}</span>
                     <span class="receipt-status ${s.cls}">${s.label}</span>
                     <span class="receipt-time">${timeStr}</span>
                 </div>
-                <div class="receipt-point">${escapeHtml(r.point || '—')}</div>
+                <div class="receipt-point">${detail}</div>
                 <div class="receipt-meta">${escapeHtml(r.manager || '')}${r.id ? ' · № ' + escapeHtml(r.id) : ''}${r.error ? ' · ' + escapeHtml(r.error) : ''}</div>
             </div>`;
         }).join('');
@@ -2011,6 +2025,8 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
             } catch (e) {}
             return [];
         }
+        window.getMonQueueCount = function() { return loadMonQueue().length; };
+
         function saveMonQueue(q) {
             try { localStorage.setItem(STORAGE_KEY_MON_QUEUE, JSON.stringify(q)); } catch (e) {}
         }
@@ -2032,16 +2048,17 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
             return MONITORING_SCRIPT_URL + '?' + params.toString();
         }
 
-        async function addMonReport(report) {
+                async function addMonReport(report) {
             const q = loadMonQueue();
-            q.push({
+            const item = {
                 ...report,
                 id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
                 timestamp: new Date().toISOString()
-            });
+            };
+            q.push(item);
             saveMonQueue(q);
             updateMonBadge();
-            return q.length;
+            return item;
         }
 
         async function sendMonReport(report) {
@@ -2062,7 +2079,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
             }
         }
 
-        async function syncMonReports() {
+                async function syncMonReports() {
             const q = loadMonQueue();
             if (q.length === 0) { updateMonBadge(); return; }
             if (!navigator.onLine) { updateMonBadge(); return; }
@@ -2076,24 +2093,21 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
             let ok = 0;
             for (const r of q) {
                 const sent = await sendMonReport(r);
-                if (sent) ok++;
-                else failedIds.push(r.id);
+                if (sent) { ok++; addReceipt(r, 'sent', '', 'monitoring'); }
+                else { failedIds.push(r.id); addReceipt(r, 'error', 'Сервер не подтвердил', 'monitoring'); }
             }
             if (ok > 0) {
                 const remaining = loadMonQueue().filter(r => failedIds.includes(r.id));
                 saveMonQueue(remaining);
             }
+            renderReceipts();
             updateMonBadge();
             if (ok > 0) showToast(`Мониторинг: отправлено записей — ${ok}`, 'success');
             else if (failedIds.length > 0) showToast('Мониторинг: сервер не принял записи, оставлены в очереди', 'error');
         }
 
-        function updateMonBadge() {
-            const badge = document.getElementById('monitoring-queue-badge');
-            if (!badge) return;
-            const count = loadMonQueue().length;
-            badge.textContent = count;
-            badge.className = (count === 0) ? 'online' : '';
+                function updateMonBadge() {
+            if (typeof window.updateTotalQueueBadge === 'function') window.updateTotalQueueBadge();
         }
 
         const monBtn       = document.getElementById('monitoringBtn');
@@ -2361,7 +2375,9 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
             const newId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
             const timestamp = new Date().toISOString();
 
-            await addMonReport({ ...report, id: newId, timestamp });
+            const monQueued = await addMonReport(report);
+            addReceipt(monQueued, 'queued', '', 'monitoring');
+            renderReceipts();
             sessionEntries.push(report);
             renderSessionList();
 
