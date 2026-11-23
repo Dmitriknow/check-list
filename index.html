@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Чек-лист наличия образцов</title>
-    <meta name="app-version" content="20">
+    <meta name="app-version" content="21">
     <style>
 /* ============ DESIGN TOKENS (VIZAVI CERAMICA) ============ */
 :root {
@@ -1926,7 +1926,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     // 10. МОНИТОРИНГ КОНКУРЕНТОВ (независимый модуль)
     // =====================================================
     (function() {
-        const MONITORING_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby8Of75UVav16doOrPG0Skyj2y0To16u-mnp9iTxUllF13Dfgoye-FkPAOITyR4O6Bd/exec';
+        const MONITORING_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpSjz1zdy28BZSPJYh4Z_NHf6bfsranZE87KB743XJZSqlwu3Yp5oycBJ2e7vzoPs9/exec';
         const STORAGE_KEY_MON_QUEUE = 'offline_monitoring_queue';
         const STORAGE_KEY_MON_CACHE = 'offline_monitoring_cache';
         const URL_READY = !MONITORING_SCRIPT_URL.includes('PASTE_YOUR');
@@ -2069,10 +2069,8 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
                     console.error('Monitoring HTTP error:', resp.status, url);
                     return false;
                 }
-                const text = await resp.text();
-                console.log('Monitoring server response:', text);
-                if (text && /error|exception|not found|unauthor/i.test(text)) return false;
-                return true;
+                const json = await resp.json().catch(() => null);
+                return !!(json && json.result === 'success');
             } catch (e) {
                 console.error('Ошибка отправки мониторинга:', e);
                 return false;
